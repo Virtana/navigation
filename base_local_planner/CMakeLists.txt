@@ -44,6 +44,8 @@ add_message_files(
     DIRECTORY msg
     FILES
     Position2DInt.msg
+    TrajectoryCost.msg
+    AllTrajectoryCosts.msg
 )
 
 generate_messages(

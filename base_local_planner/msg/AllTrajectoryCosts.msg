@@ -1,0 +1,1 @@
+TrajectoryCost[] all_costs

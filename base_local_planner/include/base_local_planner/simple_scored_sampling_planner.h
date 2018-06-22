@@ -44,6 +44,8 @@
 #include <base_local_planner/trajectory_sample_generator.h>
 #include <base_local_planner/trajectory_search.h>
 
+#include <base_local_planner/TrajectoryCost.h>
+
 namespace base_local_planner {
 
 /**
@@ -93,10 +95,12 @@ public:
    */
   bool findBestTrajectory(Trajectory& traj, std::vector<Trajectory>* all_explored = 0);
 
+  std::vector<TrajectoryCost> costs_;  //Stores the cost data associated with each trajectory.
 
 private:
   std::vector<TrajectorySampleGenerator*> gen_list_;
   std::vector<TrajectoryCostFunction*> critics_;
+  std::vector<double> single_costs_;    //stores individual costs that make up the total
 
   int max_samples_;
 };

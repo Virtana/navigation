@@ -63,6 +63,9 @@
 
 #include <nav_msgs/Path.h>
 
+#include <base_local_planner/TrajectoryCost.h>
+#include <base_local_planner/AllTrajectoryCosts.h>
+
 namespace dwa_local_planner {
   /**
    * @class DWAPlanner
@@ -72,7 +75,7 @@ namespace dwa_local_planner {
     public:
       /**
        * @brief  Constructor for the planner
-       * @param name The name of the planner 
+       * @param name The name of the planner
        * @param costmap_ros A pointer to the costmap instance the planner should use
        * @param global_frame the frame id of the tf frame to use
        */
@@ -102,8 +105,8 @@ namespace dwa_local_planner {
 
       /**
        * @brief Given the current position and velocity of the robot, find the best trajectory to exectue
-       * @param global_pose The current position of the robot 
-       * @param global_vel The current velocity of the robot 
+       * @param global_pose The current position of the robot
+       * @param global_vel The current velocity of the robot
        * @param drive_velocities The velocities to send to the robot base
        * @return The highest scoring trajectory. A cost >= 0 means the trajectory is legal to execute.
        */
@@ -161,6 +164,7 @@ namespace dwa_local_planner {
       boost::mutex configuration_mutex_;
       pcl::PointCloud<base_local_planner::MapGridCostPoint>* traj_cloud_;
       pcl_ros::Publisher<base_local_planner::MapGridCostPoint> traj_cloud_pub_;
+      ros::Publisher traj_costs_pub_;
       bool publish_cost_grid_pc_; ///< @brief Whether or not to build and publish a PointCloud
       bool publish_traj_pc_;
 

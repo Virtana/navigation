@@ -40,7 +40,7 @@
 #include <ros/console.h>
 
 namespace base_local_planner {
-  
+
   SimpleScoredSamplingPlanner::SimpleScoredSamplingPlanner(std::vector<TrajectorySampleGenerator*> gen_list, std::vector<TrajectoryCostFunction*>& critics, int max_samples) {
     max_samples_ = max_samples;
     gen_list_ = gen_list;
@@ -50,19 +50,23 @@ namespace base_local_planner {
   double SimpleScoredSamplingPlanner::scoreTrajectory(Trajectory& traj, double best_traj_cost) {
     double traj_cost = 0;
     int gen_id = 0;
+    single_costs_.clear();
     for(std::vector<TrajectoryCostFunction*>::iterator score_function = critics_.begin(); score_function != critics_.end(); ++score_function) {
       TrajectoryCostFunction* score_function_p = *score_function;
       if (score_function_p->getScale() == 0) {
+        single_costs_.push_back(0.0);
         continue;
       }
       double cost = score_function_p->scoreTrajectory(traj);
       if (cost < 0) {
         ROS_DEBUG("Velocity %.3lf, %.3lf, %.3lf discarded by cost function  %d with cost: %f", traj.xv_, traj.yv_, traj.thetav_, gen_id, cost);
         traj_cost = cost;
+        single_costs_.push_back(cost);
         break;
       }
       if (cost != 0) {
         cost *= score_function_p->getScale();
+        single_costs_.push_back(cost);
       }
       traj_cost += cost;
       if (best_traj_cost > 0) {
@@ -84,6 +88,8 @@ namespace base_local_planner {
     double loop_traj_cost, best_traj_cost = -1;
     bool gen_success;
     int count, count_valid;
+    costs_.clear(); //clear costs from any previous trajectory sets
+
     for (std::vector<TrajectoryCostFunction*>::iterator loop_critic = critics_.begin(); loop_critic != critics_.end(); ++loop_critic) {
       TrajectoryCostFunction* loop_critic_p = *loop_critic;
       if (loop_critic_p->prepare() == false) {
@@ -92,17 +98,26 @@ namespace base_local_planner {
       }
     }
 
+    int best_index = 0;                                   //index of the trajectory with the best cost
+
     for (std::vector<TrajectorySampleGenerator*>::iterator loop_gen = gen_list_.begin(); loop_gen != gen_list_.end(); ++loop_gen) {
       count = 0;
       count_valid = 0;
+
       TrajectorySampleGenerator* gen_ = *loop_gen;
       while (gen_->hasMoreTrajectories()) {
+        base_local_planner::TrajectoryCost single_traj_cost;  //storing Trajectory cost data
+        single_traj_cost.index = count;   //index
+        single_traj_cost.is_best = false; //if this is the best trajectory
+
         gen_success = gen_->nextTrajectory(loop_traj);
         if (gen_success == false) {
           // TODO use this for debugging
           continue;
         }
         loop_traj_cost = scoreTrajectory(loop_traj, best_traj_cost);
+        single_traj_cost.overall_cost = loop_traj_cost;
+        single_traj_cost.sub_costs = single_costs_;
         if (all_explored != NULL) {
           loop_traj.cost_ = loop_traj_cost;
           all_explored->push_back(loop_traj);
@@ -113,12 +128,14 @@ namespace base_local_planner {
           if (best_traj_cost < 0 || loop_traj_cost < best_traj_cost) {
             best_traj_cost = loop_traj_cost;
             best_traj = loop_traj;
+            best_index = count;
           }
         }
         count++;
         if (max_samples_ > 0 && count >= max_samples_) {
           break;
-        }        
+        }
+        costs_.push_back(single_traj_cost);
       }
       if (best_traj_cost >= 0) {
         traj.xv_ = best_traj.xv_;
@@ -138,8 +155,9 @@ namespace base_local_planner {
         break;
       }
     }
+    costs_[best_index].is_best = true;    // sets is_best to true for the trajectory with the best cost
     return best_traj_cost >= 0;
   }
 
-  
+
 }// namespace
