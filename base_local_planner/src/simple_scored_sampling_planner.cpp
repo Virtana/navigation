@@ -58,6 +58,9 @@ namespace base_local_planner {
         continue;
       }
       double cost = score_function_p->scoreTrajectory(traj);
+      if (cost == 0){
+        single_costs_.push_back(cost);
+      }
       if (cost < 0) {
         ROS_DEBUG("Velocity %.3lf, %.3lf, %.3lf discarded by cost function  %d with cost: %f", traj.xv_, traj.yv_, traj.thetav_, gen_id, cost);
         traj_cost = cost;
